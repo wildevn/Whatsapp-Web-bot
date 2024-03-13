@@ -1,3 +1,4 @@
 node_modules/
-test*
+teste.js
+test.json
 /messages
