@@ -32,6 +32,11 @@ const messages_obj = {
     'wrong_message': 'Opção inexistente, as opções disponíveis são:'
 }
 
+var contacts_messages_obj_list // holds all the chats messages during a day, after that will be deleted
+/* var chats_watchdog = setInterval(() => {
+    call the function to see if the chat is ok or in need to delete
+3600000*})*/
+
 function initClientServer(client) {
     client.on('qr', (qr) => {
         qrcode.generate(qr, { small: true });
@@ -39,16 +44,27 @@ function initClientServer(client) {
 
     client.on('ready', () => {
         console.log('Client is ready!');
+        contacts_messages_obj_list = {}
     });
 
     client.on('message', async (message) => {
+        var messages_list_to_send, interval_between_msgs, i
+
         console.log(message.body)
         if(message.body.includes('!')) {
-            var messages_list = await getAllMessages(client, message)
-           // console.log(messages_list) /////////////////// change the "!"    !!!!!
+            // console.log(messages_list) /////////////////// change the "!"    !!!!!
+            await verifyChat(client, message)
     
-            for (message_to_send of selectMessageToSend(messages_list))
-                await client.sendMessage(message.from, message_to_send);
+            // selectMessageToSend now receives the id of the chat
+            messages_list_to_send = selectMessageToSend(message.id.remote) // might need to change the structure of the function
+
+            i = 0
+            interval_between_msgs = setInterval(() => { // send the messages with a difference of 1 sec of each msg
+                client.sendMessage(message.from, messages_list_to_send[i])
+                i++
+            }, 1000);
+            while(i < messages_list_to_send.length);
+            clear(interval_between_msgs) // need confirmation after
         }
     });
 
@@ -61,7 +77,7 @@ async function getAllMessages(client, message) {
     const chats = await client.getChats();
     var chat, messages_list
     messages_list = []
-    chats.forEach(single_chat => {
+    chats.forEach(single_chat => { // may be optimized
         if (single_chat.id._serialized == message.id.remote) {
             chat = single_chat
         }
@@ -78,6 +94,18 @@ async function getAllMessages(client, message) {
         console.log(message)
     }
 
+}
+
+async function verifyChat(client, message) {
+    if(contacts_messages_obj_list[message.id.remote] == undefined) {
+        var messages_list = await getAllMessages(client, message) 
+        contacts_messages_obj_list[message.id.remote] = [[new Date(message.timestamp * 1000), new Date(message.timestamp * 1000)]]
+        (contacts_messages_obj_list[message.id.remote]).push(messages_list)
+    }
+    else {
+        (contacts_messages_obj_list[message.id.remote])[0][1] = new Date(message.timestamp * 1000)
+        (contacts_messages_obj_list[message.id.remote])[1].push([message.id.fromMe, (new Date(message.timestamp * 1000)).toDateString(), (new Date(message.timestamp * 1000)).toTimeString(), message.body])
+    }
 }
 
 // Get the last message of the bot and the user
