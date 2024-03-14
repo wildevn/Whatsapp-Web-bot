@@ -1,40 +1,15 @@
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 const messages_obj = {
-    'start_message': 'Olá, bem vindo a nossa loja',
-    'options': {
-                    '0': 'null',
-                    '1': 'Create a new branch',
-                    '2': 'Edit an existing branch',
-                    '1.1': 'Test to create',
-                    '1.2': 'Copy and paste an existing branch',
-                    '1.3': 'return to the last option',
-                    '2.1': 'vb 1',
-                    '2.2': 'shift it to the next one',
-                    '2.3': 'Return to the last option',
-                    '1.1.1': 'Create with name 54',
-                    '1.1.2': 'Create a no nAme',
-                    '1.1.3': 'Return to the last option',
-                    '1.2.1': 'Name Gfk',
-                    '1.2.2': 'Name GLX',
-                    '1.2.3': 'Return to the last option',
-                    '2.1.1': 'Concluido com sucesso: vb 1',
-                    '2.2.1': 'name 1',
-                    '2.2.2': 'Return to the last option',
-                    '1.1.1.1': 'Concluido com sucesso: Create with name 54',
-                    '1.1.2.1': 'Concluido com sucesso: Create a no nAme',
-                    '1.2.1.1': 'Concluido com sucesso: Name Gfk',
-                    '1.2.2.1': 'Concluido com sucesso: Name GLX',
-                    '2.2.1.1': 'Concluido com sucesso: name 1',
-                },
-    'select_option': 'Please, select one of the following options: ',
-    'last_message': 'Aguardamos ansiosamente pela sua volta!',
-    'wrong_message': 'Opção inexistente, as opções disponíveis são:'
+    '0': 'Olá, trabalho com a consultora feminina detox, tudo bem?',
+    '1.0': 'Estou muito bem, obrigado por perguntar. Gostaria de saber seu nome',
+    '1.1': 'Perfeito...Qual seu nome?',
+    '2': 'Que legal, maneiro, quais informações você gostaria de saber sobre o lift detox?'
 }
 
 var contacts_messages_obj_list // holds all the chats messages during a day, after that will be deleted
 /* var chats_watchdog = setInterval(() => {
-    call the function to see if the chat is ok or in need to delete
+    call the function to verify if the chat is within the specified time or need to be deleted
 3600000*})*/
 
 function initClientServer(client) {
@@ -99,12 +74,13 @@ async function getAllMessages(client, message) {
 async function verifyChat(client, message) {
     if(contacts_messages_obj_list[message.id.remote] == undefined) {
         var messages_list = await getAllMessages(client, message) 
-        contacts_messages_obj_list[message.id.remote] = [[new Date(message.timestamp * 1000), new Date(message.timestamp * 1000)]]
-        (contacts_messages_obj_list[message.id.remote]).push(messages_list)
+        contacts_messages_obj_list[message.id.remote] = {'date': [new Date(message.timestamp * 1000), new Date(message.timestamp * 1000)]}
+        contacts_messages_obj_list[message.id.remote]['chat_messages'] = messages_list
+        // need to be called the function to verify the messages from the bot
     }
     else {
-        (contacts_messages_obj_list[message.id.remote])[0][1] = new Date(message.timestamp * 1000)
-        (contacts_messages_obj_list[message.id.remote])[1].push([message.id.fromMe, (new Date(message.timestamp * 1000)).toDateString(), (new Date(message.timestamp * 1000)).toTimeString(), message.body])
+        contacts_messages_obj_list[message.id.remote]['date'][1] = new Date(message.timestamp * 1000) // maybe need to change
+        contacts_messages_obj_list[message.id.remote]['chat_messages'].push([message.id.fromMe, (new Date(message.timestamp * 1000)).toDateString(), (new Date(message.timestamp * 1000)).toTimeString(), message.body])
     }
 }
 
