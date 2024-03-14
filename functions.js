@@ -6,7 +6,7 @@ const messages_obj = {
     '1.1': 'Perfeito...Qual seu nome?',
     '2': 'Que legal, maneiro, quais informações você gostaria de saber sobre o lift detox?'
 }
-
+/* structure: {'date': [], 'chat_messages': [], 'last_messages_bot_ids': []}*/
 var contacts_messages_obj_list // holds all the chats messages during a day, after that will be deleted
 /* var chats_watchdog = setInterval(() => {
     call the function to verify if the chat is within the specified time or need to be deleted
@@ -76,6 +76,7 @@ async function verifyChat(client, message) {
         var messages_list = await getAllMessages(client, message) 
         contacts_messages_obj_list[message.id.remote] = {'date': [new Date(message.timestamp * 1000), new Date(message.timestamp * 1000)]}
         contacts_messages_obj_list[message.id.remote]['chat_messages'] = messages_list
+        searchMessages(message, messages_list, 1)
         // need to be called the function to verify the messages from the bot
     }
     else {
@@ -84,35 +85,51 @@ async function verifyChat(client, message) {
     }
 }
 
-// Get the last message of the bot and the user
-function searchMessages(message_list) {
+// Get the last message of the bot and the user or puts in the chat_msgs_obj the id of each message sent by the bot
+function searchMessages(message, message_list, is_bot) {
     let bot_msg, user_msg
+    if(is_bot)
+        contacts_messages_obj_list[message.id.remote]['last_messages_bot_ids'] = []
     for (let i = 9; i >= 0; i--) { // get the last ones
-        console.log(i, message_list[i], message_list[i-1])
+        //console.log(i, message_list[i], message_list[i-1])
         //console.log('from me? ', message_list[i][0], 'bot: ', bot_msg, 'user: ', user_msg)
-        if(message_list[i][0] && bot_msg == undefined)
-            bot_msg = message_list[i][3]
-        else if(!message_list[i][0] && user_msg == undefined)
-            user_msg = message_list[i][3]
-        if(bot_msg != undefined && user_msg != undefined)
-            return [user_msg.slice(-1), bot_msg] ////// Has to be changed to not contain the '!'
+        if(!is_bot) {
+            if(message_list[i][0] && bot_msg == undefined)
+                bot_msg = message_list[i][3]
+            else if(!message_list[i][0] && user_msg == undefined)
+                user_msg = message_list[i][3]
+            if(bot_msg != undefined && user_msg != undefined)
+                return [user_msg.slice(-1), bot_msg] ////// Has to be changed to not contain the '!'
+        }
+        else if(message_list[i][0])
+            contacts_messages_obj_list[message.id.remote]['last_messages_bot_ids'].unshift(getOriginMessage('', message_list[i][3], is_bot))
     }
-    return [user_msg.slice(-1)]
+    return is_bot ? null : [user_msg.slice(-1)]
 }
 
 // Gets the origin key of the message
-function getOriginMessage(user_msg, bot_msg) {
+function getOriginMessage(user_msg, bot_msg, is_bot) {
     let message_list = {}
-    bot_msg.split('\n').forEach(line => {
-        line = line.split('.')
-        message_list[line[0]] = line[1]
-    })
-    for (key in messages_obj['options']) {
-        console.log('messages_obj[options][key]: ', messages_obj['options'][key], 'message_list[user_msg]: ', message_list[user_msg], messages_obj['options'][key] == message_list[user_msg])
-        if(messages_obj['options'][key] == message_list[user_msg])
-            return key
+    if(!is_bot) { // need to be changed when the user sends a message
+        bot_msg.split('\n').forEach(line => {
+            line = line.split('.')
+            message_list[line[0]] = line[1]
+        })
+        for (key in messages_obj) {
+            console.log('messages_obj[options][key]: ', messages_obj['options'][key], 'message_list[user_msg]: ', message_list[user_msg], messages_obj['options'][key] == message_list[user_msg])
+            if(messages_obj['options'][key] == message_list[user_msg])
+                return key
+        }
+        return undefined   
     }
-    return undefined   
+    else {
+        for (key in messages_obj) {
+            console.log('messages_obj[key]: ', messages_obj[key], 'bot_msg ', bot_msg, messages_obj[key] == bot_msg)
+            if(messages_obj[key] == bot_msg)
+                return key
+        }
+        return '5656' // this code means that the owner had sent a message on this chat
+    }
 }
 
 // Create the message that will be sent to the private chat
