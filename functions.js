@@ -1,5 +1,8 @@
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
+const { Buttons } = require('whatsapp-web.js');
+const getMessageFromAI = require('./LLM_api_src/LLM_api.js')
+
 const messages_obj = {
     '0': 'Olá, trabalho com a consultora feminina detox, tudo bem?',
     '1.0': 'Estou muito bem, obrigado por perguntar. Gostaria de saber seu nome',
@@ -25,11 +28,11 @@ function initClientServer(client) {
     client.on('message', async (message) => {
         var messages_list_to_send, interval_between_msgs, i
 
-        console.log(message.body)
+        //console.log(message.body)
         if(message.body.includes('!')) {
             // console.log(messages_list) /////////////////// change the "!"    !!!!!
-            await verifyChat(client, message)
-    
+            /*await verifyChat(client, message)
+            
             // selectMessageToSend now receives the id of the chat
             messages_list_to_send = selectMessageToSend(message.id.remote) // might need to change the structure of the function
 
@@ -40,6 +43,13 @@ function initClientServer(client) {
             }, 1000);
             while(i < messages_list_to_send.length);
             clear(interval_between_msgs) // need confirmation after
+            /*var buttons = new Buttons('Msg before buttons...', [
+                {id: 'x.1', body:'teste botao1'},
+                {body:'testss botao teste'}
+            ])
+            await client.sendMessage(message.from, buttons)*/
+            var message_to_send = await getMessageFromAI(message.body.split('!')[1])
+            await client.sendMessage(message.from, message_to_send)
         }
     });
 
@@ -175,6 +185,7 @@ function selectMessageToSend(messages_list) {
     return [createMessage(origin_key)]
 }
 
+// obsolute function, going to be deleted soon
 async function printOptions(client, message, location_to_print) {
     var message_string = ''
     if(location_to_print != 'start_message' && location_to_print != 'last_message' && location_to_print != 'wrong_message') {
